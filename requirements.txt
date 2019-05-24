@@ -1,0 +1,6 @@
+discord.py==0.16.12
+asyncio==0.16.12
+datetime==0.16.12
+sys==0.16.12
+os==0.16.12
+parser==0.16.12
