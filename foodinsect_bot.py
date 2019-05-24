@@ -1,121 +1,76 @@
-import discord , asyncio , datetime , sys , os
+import discord
+import asyncio
+import datetime
 from parser import *
-
-def main():
-    client = discord.Client()
-
-    #명령어 목록
-    Command_list = (
-                    "```css\n"
-                    "[inhun_bot Command List]\n"
-                    "$a - 도움말\n"
-                    "$b - 버전 정보\n"
-                    "$d - 현재 시각\n"
-                    "$f - 내일 급식\n"
-                    "$g - 급식 식단\n"
-                    "```"
-                    )
-    #급식안내
-    meal_notice = (
-                    "```css\n"
-                    "[-] 2018년 1월 2일 인 경우 18012 로 보낼 것.\n"
-                    "[-] 2018년 10월 1일 인 경우 18101 로 보낼 것.\n"
-                    "```"
-                    )
-
-    @client.event
-    async def on_member_join(member):
-        fmt = ' {1.name} 에 오신걸 환영합니다, {0.mention} 님'
-        channel = member.server.get_channel("429208403118653440")
-        await client.send_message(channel, fmt.format(member, member.server))
-        await client.send_message(member, "공지 읽어주세요")
-
-    @client.event
-    async def on_member_remove(member):
-        channel = member.server.get_channel("429208403118653440")
-        fmt = '{0.mention} 님이 서버에서 나가셨습니다.'
-        await client.send_message(channel, fmt.format(member, member.server))
-
-    @client.event
-    async def on_ready():
-        print('Logged in as')
-        print(client.user.name)
-        print(client.user.id)
-        print('---------')
-        await client.change_presence(game=discord.Game(name="$a for help"))
-
-    @client.event
-    async def print_get_meal(local_date, local_weekday, message):
-        l_diet = get_diet(2, local_date, local_weekday)
-        d_diet = get_diet(3, local_date, local_weekday)
-
-        if len(l_diet) == 1:
-            embed = discord.Embed(title="No Meal", description="급식이 없습니다.", color=0x00ff00)
-            await client.send_message(message.channel, embed=embed)
-        elif len(d_diet) == 1:
-            lunch = local_date + " 중식\n" + l_diet
-            embed = discord.Embed(title="Lunch", description=lunch, color=0x00ff00)
-            await client.send_message(message.channel, embed=embed)
-        else:
-            lunch = local_date + " 중식\n" + l_diet
-            embed= discord.Embed(title="Lunch", description=lunch, color=0x00ff00)
-            await client.send_message(message.channel, embed=embed)
-            embed = discord.Embed(title="Dinner", description=dinner, color=0x00ff00)
-            await client.send_message(message.channel, embed=embed)
-
-    @client.event
-    async def on_message(message):
-        if message.content.startswith('$a'):
-            await client.send_message(message.channel, Command_list)
-
-        elif message.content.startswith('$b'):
-            embed = discord.Embed(title="Bot Version", description="updated", color=0x00ff00)
-            embed.add_field(name="Version", value="2.4.3", inline=False)
-            await client.send_message(message.channel, embed=embed)
-
-        elif message.content.startswith('$d'):
-            dt = datetime.datetime.now()
-            local_time = dt.strftime("%Y년 %m월 %d일 %H시 %M분 %S초")
-            embed = discord.Embed(title="Local Time", description=local_time, color=0x00ff00)
-            await client.send_message(message.channel, embed=embed)
-
-        elif message.content.startswith('$f'):
-            f_dt = datetime.datetime.today() + datetime.timedelta(days=1)
-            meal_date = f_dt.strftime("%Y.%m.%d")
-            whatday = f_dt.weekday()
-
-            await print_get_meal(meal_date, whatday, message)
-
-        elif message.content.startswith('$g'):
-            request = meal_notice + '\n' + '날짜를 보내주세요...'
-            request_e = discord.Embed(title="Send to Me", description=request, color=0xcceeff)
-            await client.send_message(message.channel, embed=request_e)
-            meal_date = await client.wait_for_message(timeout=15.0, author=message.author)
-
-            #입력이 없을 경우
-            if meal_date is None:
-                longtimemsg = discord.Embed(title="In 15sec", description='15초내로 입력해주세요. 다시시도 : $g', color=0xff0000)
-                await client.send_message(message.channel, embed=longtimemsg)
-                return
-
-            meal_date = str(meal_date.content) # 171121
-            meal_date = '20' + meal_date[:2] + '.' + meal_date[2:4] + '.' + meal_date[4:6] # 2017.11.21
-
-            s = meal_date.replace('.', ', ') # 2017, 11, 21
-
-            #한자리수 달인 경우를 해결하기위함
-            if int(s[6:8]) < 10:
-                s = s.replace(s[6:8], s[7:8])
-
-            ss = "datetime.datetime(" + s + ").weekday()"
+ 
+ 
+client = discord.Client()
+ 
+@client.event
+async def on_ready():
+    print('Logged in as')
+    print(client.user.name)
+    print(client.user.id)
+    print('------')
+ 
+@client.event
+async def on_message(message):
+    if message.content.startswith('!to'):    #메세지의 내용의 시작이 !to로 시작할 경우
+        to_tomorrow = datetime.datetime.today() + datetime.timedelta(days=1)    #오늘 날짜에 하루를 더함
+        local_date2 = to_tomorrow.strftime("%Y.%m.%d")    #위에서 구한 날짜를 년.월.일 형식으로 저장
+        local_weekday2 = to_tomorrow.weekday()    #위에서  구한 날짜의 요일값을 저장
+ 
+        l_diet = get_diet(2, local_date2, local_weekday2)    #점심식단을 파싱해옴
+        d_diet = get_diet(3, local_date2, local_weekday2)    #석식식단을 파싱해옴
+ 
+        if len(l_diet) == 1:    #점심식단의 길이가 1일경우 = parser.py에서 식단이 없을경우 공백한자리를 반환함.
+            await client.send_message(message.channel, "급식이 없습니다.")    #급식이 없다고 메세지 보냄
+        elif len(d_diet) == 1:    #점심식단의 길이가 1이 아니고 석식식단의 길이가 1일경우 = 점심식단만 있을경우
+            lunch = local_date2 + " 중식\n" + l_diet    #날짜와 "중식"을 앞에 붙여서
+            await client.send_message(message.channel, lunch)    #메세지 보냄
+        else:    #둘다 길이가 1이 아닐경우 = 점심, 석식 식단 모두 있을 경우
+            lunch = local_date2 + " 중식\n" + l_diet    #앞에 부가적인 내용을 붙여서
+            dinner = local_date2 + " 석식\n" + d_diet
+            await client.send_message(message.channel, lunch)    #메세지를 보냄
+            await client.send_message(message.channel, dinner)
+ 
+ 
+   elif message.content.startswith('!g'):
+        await client.send_message(message.channel, '날짜를 보내주세요...')    #날짜를 보내달라는 메세지를 보냄
+        meal_date = await client.wait_for_message(timeout=15.0, author=message.author)    #제한시간은 15초
+ 
+        if meal_date is None:    #값이 존재하지 않거나 시간이 초과되었을 경우
+            await client.send_message(message.channel, '15초내로 입력해주세요. 다시시도 : !g')    #다시 시도하라는 메세지를 보냄
+            return
+ 
+        else:    #값이 있다면
+            meal_date = str(meal_date.content) # str형으로 변환, (사용자로부터 20180219와 같은 형태로 받아야 합니다.)
+            meal_date = '20' + meal_date[:2] + '.' + meal_date[2:4] + '.' + meal_date[4:6]    # 2018.02.19 사이에 점을 추가함
+            #(사용자로부터 점이 포함된 값으로 받을경우 위 코드를 삭제해도 됩니다.)
+ 
+            s = meal_date.replace('.', ', ')     # 2018, 02, 19 점을 반점으로 교체
+            ss = "datetime.datetime(" + s + ").weekday()"    #eval함수를 통해 요일값을 구하기 위한 작업
             try:
-                whatday = eval(ss)
-            except:
-                warnning = discord.Embed(title="Plz Retry", description='올바른 값으로 다시 시도하세요 : $g', color=0xff0000)
-                await client.send_message(message.channel, embed=warnning)
+                whatday = eval(ss)    #요일값을 구해서 whatday에 저장
+            except:    #오류가 날 경우 다시 시도하라는 메세지를 보냄
+                await client.send_message(message.channel, '올바른 값으로 다시 시도하세요 : !g')
                 return
-
-            await print_get_meal(meal_date, whatday, message)
+            #이하 '내일 식단을 출력하기'와 같음
+            l_diet = get_diet(2, meal_date, whatday)
+            d_diet = get_diet(3, meal_date, whatday)
+ 
+            if len(l_diet) == 1:
+                l_diet = "급식이 없습니다."
+                await client.send_message(message.channel, embed=l_diet)
+            elif len(d_diet) == 1:
+                lunch = meal_date + " 중식\n" + l_diet
+                await client.send_message(message.channel, embed=lunch)
+            else:
+                lunch = meal_date + " 중식\n" + l_diet
+                dinner = meal_date + " 석식\n" + d_diet
+                await client.send_message(message.channel, lunch)
+                await client.send_message(message.channel, dinner)
+ 
             
     acess_token = os.environ["BOT_TOKEN"]
     client.run('access_token')
