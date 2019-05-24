@@ -116,8 +116,9 @@ def main():
                 return
 
             await print_get_meal(meal_date, whatday, message)
-
-    client.run('NTI2Nzc3MjU5ODk4NDM3NjUy.XOgWfw.--iJP-83FuRdWKE11_33ghs0WkY')
+            
+    acess_token = os.environ["BOT_TOKEN"]
+    client.run('access_token')
 
     #대기 시간 초과로 봇이 종료되었을 때 자동으로 재실행을 위함
     #import sys, os
